@@ -2,13 +2,14 @@
   <div class="wrap">
     <label class="floatleft" :class="{'i-form-item-label-required': isRequired}" v-if="label" v-text="label + '：'"></label>
     <div class="floatleft">
-      <slot>formItem组件</slot>
+      <slot></slot>
+      <div v-if="validateState === 'error'" class="i-form-item-message">{{ validateMessage }}</div>
     </div>
   </div>
 </template>
 
 <script>
-import AsyncValidator  from 'async-validate'
+import AsyncValidator  from 'async-validator'
 import emitter from '../../dispatch/emitter.js'
 export default {
   name: 'iFormItem',
@@ -29,6 +30,7 @@ export default {
       isRequired: false,
       validateState: '',        // 校验状态
       validateMessage: '',      // 校验不通的信息
+      initialValue: ''          // 还原初始值时使用
     }
   },
   computed: {
@@ -65,11 +67,8 @@ export default {
      * @param trigger 校验类型
      * @param callback 回调函数
      */
-    validate (trigger) {
+    validate (trigger, callback = function () {}) {
       let rules = this.getFilteredRule(trigger)
-      console.log(trigger)
-      console.log(rules)
-      console.log('===============')
       if (!rules || rules.length === 0) {
         return true
       }
@@ -78,32 +77,40 @@ export default {
       // 以下为 async-validator 库的调用方法
       let descriptor = {}
       descriptor[this.prop] = rules
-
       const validator = new AsyncValidator(descriptor)
 
       let model = {}
       model[this.prop] = this.fieldValue
-      console.log(model)
-      console.log(validator.validate)
-      validator.validate(model, { firstFields: true }, (errors, fields) => {
+
+      validator.validate(model, { firstFields: true }, errors => {
         console.log(errors)
-        // this.validateState = !errors ? 'success' : 'error'
-        // this.validateMessage =  errors ? errors[0] : ''
-        // callback(this.validateMessage)
+        this.validateState = !errors ? 'success' : 'error'
+        this.validateMessage =  errors ? errors[0].message : ''
+        callback(this.validateMessage)
       })
     },
+    // 重置数据
+    resetField () {
+      this.validateState = '';
+      this.validateMessage = '';
+
+      this.form.model[this.prop] = this.initialValue;
+    },
     onFieldBlur () {
-      console.log('blur')
       this.validate('blur')
     },
     onFieldChange () {
-      console.log('change事件')
       this.validate('change')
     }
   },
   mounted () {
     if (this.prop) {
+      // 指定了prop  向form组件发送自己  因为是在组件内  不能让用户自己用v-on监听事件，所以不能用$emit发送
       this.dispatch('iForm', 'on-form-item-add', this)
+
+      // 设置初始值，以便在重置时恢复默认值
+      this.initialValue = this.fieldValue
+
       this.setRules()
     }
   },

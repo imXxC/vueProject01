@@ -1,6 +1,6 @@
 <template>
   <div class="formwrap">
-    <i-form :model="formValidate" :rules="rulesValidate">
+    <i-form ref="form" :model="formValidate" :rules="rulesValidate">
       <i-from-item label="userName" prop="userName">
         <i-input v-model="formValidate.userName"></i-input>
       </i-from-item>
@@ -8,6 +8,8 @@
         <i-input v-model="formValidate.password"></i-input>
       </i-from-item>
     </i-form>
+    <button @click="handleSubmit">提交</button>
+    <button @click="handleReset">重置</button>
   </div>
 </template>
 
@@ -25,11 +27,11 @@ export default {
       },
       rulesValidate: {
         userName: [
-          {required: true, type: 'string', message: '用户名不能为空', trigger: 'blur'}
+          {required: true, message: '用户名不能为空', trigger: 'blur'},
+          {max: 20, message: '用户名不能超过20字', trigger: 'blur'}
         ],
         password: [
-          {required: true, message: '密码不能为空', trigger: 'blur'},
-          // {type: 'email', message: '邮箱格式不正确', trigger: 'blur'}
+          {required: true, message: '密码不能为空', trigger: 'blur'}
         ]
       }
     }
@@ -40,6 +42,16 @@ export default {
     iInput
   },
   methods: {
+    handleSubmit () {
+      this.$refs.form.validate(valid => {
+        console.log(valid)
+      })
+      return false
+    },
+    handleReset () {
+      this.$refs.form.resetField()
+      return false
+    }
   },
   mounted () {
 
